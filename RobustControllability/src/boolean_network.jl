@@ -1,5 +1,7 @@
 # represent a BCN under disturbances
 using JLD2
+using DelimitedFiles
+using Base.Iterators: product, repeated
 
 
 struct BCN
@@ -16,7 +18,7 @@ struct BCN
 end
 
 # compute the next-step state of the BCN
-function step(bcn::BCN, x::Integer, u::Integer, ξ::Integer)
+function step(bcn::BCN, x::Integer, u::Integer, ξ::Integer)::Integer
     (; M, N) = bcn
     k = x
     j = u
@@ -39,6 +41,8 @@ end
 Given a list of Boolean functions `fs`, number of controls `m`, and number of disturbances `q`, 
 build the algebraic form of the BCN.
 If `to_file` is specified, then the BCN model is written into that file using `JLD2`.
+The format depends on the `to_file` extensions: JLD2 (binary format), 
+    or txt or dat (text format, each line for a number in `L`).
 """
 function calculate_ASSR(fs::AbstractVector{<:Function}, m, q; to_file::String="")::BCN
     n = length(fs)
@@ -68,7 +72,13 @@ function calculate_ASSR(fs::AbstractVector{<:Function}, m, q; to_file::String=""
 
     bcn = BCN(M, N, Q, idx)
     if !isempty(to_file)
-        jldsave(to_file; bcn)
+        if endswith(to_file, "jld2")
+            jldsave(to_file; bcn)
+        elseif endswith(to_file, r"txt|dat")
+            writedlm(to_file, bcn.L)
+        else
+            error("Unrecognized file format in `to_file`!")
+        end
     end
     return bcn
 end
