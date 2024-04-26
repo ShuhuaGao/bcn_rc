@@ -68,7 +68,7 @@ function check_robust_controllability(bcn::BCN; verbose::Bool=false)
             T, T′ = T′, T
         end
     end
-    if verbose
+    if true
         println("- Took $(k - 1) iterations in total")
     end
 
