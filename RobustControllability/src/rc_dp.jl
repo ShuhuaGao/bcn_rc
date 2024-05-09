@@ -5,19 +5,28 @@
 # each element of U¹ is a vector of integers
 function compute_base_case(bcn::BCN)
     (; M, N, Q) = bcn
-    T¹ = fill(Inf, N, N)
-    U¹ = Matrix{Vector{Int64}}(undef, N, N)
-    us = Int64[]
-    for s in 1:N, e in 1:N
+    @show sizeof(bcn)
+    T¹ = fill(InfTime, N, N)
+    @show sizeof(T¹)
+    # it is expensive to allocate many (at most N^2) small vectors
+    # we first allocate a large memory and then build small vectors on it
+    mem = zeros(TC, N*N*M)
+    # BUG: U1 may not be smaller
+    U¹ = reshape([@view mem[(i-1)*M+1:i*M] for i in 1:N*N], N, N)
+    @show sizeof(mem) sizeof(U¹) 
+    # @show typeof(U¹)
+    us = TC[]
+    for e in 1:N, s in 1:N
+        idx = 0
         empty!(us)
         # whether s robustly reaches e by control u
         for u in 1:M
             if all(step(bcn, s, u, ξ) == e for ξ in 1:Q)
-                push!(us, u)
+                idx += 1
+                U¹[s, e][idx] = u
             end
         end
-        if !isempty(us)
-            U¹[s, e] = copy(us)
+        if idx > 0
             T¹[s, e] = 1
         end
     end
@@ -38,14 +47,23 @@ compute_R1(bcn::BCN, i, j) = compute_R1!(Vector{Int64}(), bcn, i, j)
 
 
 
+"""
+    check_robust_controllability(bcn::BCN; verbose::Bool=false)
+
+Compute the optimal time and control matrices `T` & `U` for the given Boolean network.
+If `verbose` is set, then print the intermediate results.
+Each entry of `U` is a vector of integers, and positive ones mean valid control.
+"""
 # return optimal time matrix T and control matrix U as matrices
 # if `verbose` is set, then print the intermediate results
 function check_robust_controllability(bcn::BCN; verbose::Bool=false)
     (; M, N, Q) = bcn
     (T¹, U¹) = compute_base_case(bcn)
+    @assert eltype(T¹) == TT 
     k = 1
     T = copy(T¹)
     T′ = copy(T¹)
+    @show sizeof(T) sizeof(T′)
     if verbose
         println("T1")
         display(T¹)
@@ -54,12 +72,12 @@ function check_robust_controllability(bcn::BCN; verbose::Bool=false)
     while true
         k += 1 
         for s in 1:N, e in 1:N
-            if T¹[s, e] != 1  # i.e., ϕ(s, e) != 1
-                T′[s, e] = minimum(maximum(T[r, e] for r in compute_R1(bcn, s, j)) + 1 for j in 1:M)
+            if T¹[s, e] != TT(1)  # i.e., ϕ(s, e) != 1
+                T′[s, e] = minimum(maximum_time(T[r, e] for r in compute_R1(bcn, s, j)) + 1 for j in 1:M)
             end
         end
         if verbose
-            println("T$k")
+            println("T$k:")
             display(T′)
         end
         if T == T′
@@ -68,23 +86,26 @@ function check_robust_controllability(bcn::BCN; verbose::Bool=false)
             T, T′ = T′, T
         end
     end
-    if true
-        println("- Took $(k - 1) iterations in total")
-    end
+    println("- Took $(k - 1) iterations in total")
 
-    res = Int[]
+    res = Vector{TT}(undef, M)
     U = U¹  # to facilitate readability only 
-    for s in 1:N, e in 1:N
-        if 1 < T[s, e] < Inf
-            U[s, e] = collect(1:M) 
-            empty!(res)
+    
+    for e in 1:N, s in 1:N
+        if TT(1) < T[s, e] < InfTime
             # compute the RHS for each u and collect them
             for j = 1:M
-                push!(res, 1 + maximum(T[r, e] for r in compute_R1(bcn, s, j)))
+                res[j] = 1 + maximum_time(T[r, e] for r in compute_R1(bcn, s, j))
             end
-            # find the j associated with min value in res
+            # find all j associated with min value in res
             min_value = minimum(res)
-            filter!(j -> res[j] == min_value, U[s, e])
+            idx  = 0
+            for j = 1:M
+                if res[j] == min_value
+                    idx += 1
+                    U[s, e][idx] = j
+                end
+            end
         end
     end
 
