@@ -36,3 +36,10 @@
    ```julia
    julia> include("./net.jl")
    ```
+
+
+# Causion
+Currently, we use very small integer type `UInt8` to reduce memory usage.
+As a result, the allowed number of control variables is at most 7, and the maximum $T^*$ for robust controllability is allowed to 255.
+
+If this is not the actual case, please use a wider integer type in [types.jl](RobustControllability/src/types.jl).

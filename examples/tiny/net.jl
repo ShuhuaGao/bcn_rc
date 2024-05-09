@@ -1,6 +1,6 @@
 # tiny examples for illustration purposes
 
-using RobustControllability
+using Revise, RobustControllability
 
 # logical rules
 f1(x, u, ξ) = (x[1] == x[2]) | u[1]
@@ -11,11 +11,11 @@ fs = [f1, f2]
 bcn = calculate_ASSR(fs, 1, 1; to_file=joinpath(@__DIR__, "L.txt"))
 
 # set verbose to true if you want to print intermediate results
-@time T, U = check_robust_controllability(bcn; verbose=false)
+@time T, U = check_robust_controllability(bcn; verbose=true)
 
 println("T* = ")
 display(T)
-mask = T .< Inf
+mask = T .< InfTime
 println("#elements in T* < ∞ = ", sum(mask))
 println("Min and max values in T* except ∞ = ", extrema(T[mask]))
 
