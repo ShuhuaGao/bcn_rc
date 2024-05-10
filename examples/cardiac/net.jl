@@ -1,6 +1,6 @@
 # Cardiac development examples for illustration purposes
 
-using Revise, RobustControllability, JLD2
+using RobustControllability, NPZ
 
 # logical rules
 f1(x, u, ξ) = ~x[2] & x[13] | u[1]
@@ -36,4 +36,14 @@ println("U* = ")
 display(U)
 
 # Save the results
-jldsave(joinpath(@__DIR__, "result/res.jld2"); T, U, bcn)
+result_dir = joinpath(@__DIR__, "result")
+mkpath(result_dir)
+# rewrite U into an array for storage in npy/npz
+# format: s, e, u_length, u, ...
+# e.g., `(1, 2) => [0x01, 0x02]` becomes `1, 2, 2, 1, 2`
+U_arr = Int[]
+for ((s, e), u) in U
+    append!(U_arr, [s, e, length(u), u...])
+end
+npzwrite(joinpath(result_dir, "res.npz"), Dict("T" => getfield.(T, :value), "U"=>U_arr, 
+    "bcn.M" => bcn.M, "bcn.N" => bcn.N, "bcn.Q" => bcn.Q, "bcn.L" => bcn.L))
