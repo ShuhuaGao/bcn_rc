@@ -37,6 +37,9 @@
    julia> include("./net.jl")
    ```
 
+7. If you noticed an output saying `Threads.nthreads() = 1`, it implies that your Julia is not enabled for multi-threading. 
+   Please set the environment variable [`JULIA_NUM_THREADS`](https://docs.julialang.org/en/v1/manual/environment-variables/#JULIA_NUM_THREADS) to `auto` to enable it.
+
 
 # Causion
 Currently, we use very small integer type `UInt8` to reduce memory usage.
