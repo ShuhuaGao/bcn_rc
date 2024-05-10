@@ -99,7 +99,7 @@ function check_robust_controllability(bcn::BCN; verbose::Bool=false)
     end
     println("RDP finished. Took $(k - 1) iterations in total")
 
-    res = Vector{TT}(undef, M)
+    res_list = [Vector{TT}(undef, M) for _ in 1:Threads.nthreads()]
     us_list = [collect(UInt8, 1:M) for _ in 1:Threads.nthreads()]
     U_list = [Dict{Tuple{Int64, Int64}, Vector{TC}}() for _ in 1:Threads.nthreads()]
     Threads.@threads for e in 1:N
@@ -107,6 +107,7 @@ function check_robust_controllability(bcn::BCN; verbose::Bool=false)
             if TT(1) < T[s, e] < InfTime
                 # compute the RHS for each u and collect them
                 R = R_list[Threads.threadid()]
+                res = res_list[Threads.threadid()]
                 for j = 1:M
                     res[j] = 1 + maximum_time(T[r, e] for r in compute_R1!(R, bcn, s, j))
                 end
