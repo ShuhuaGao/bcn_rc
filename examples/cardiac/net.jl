@@ -1,6 +1,6 @@
 # Cardiac development examples for illustration purposes
 
-using Revise, RobustControllability
+using Revise, RobustControllability, JLD2
 
 # logical rules
 f1(x, u, ξ) = ~x[2] & x[13] | u[1]
@@ -22,9 +22,9 @@ fs = [f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15]
 
 # compute the ASSR, and the transition matrix is stored in L.txt
 bcn = calculate_ASSR(fs, 2, 1; to_file=joinpath(@__DIR__, "L.txt"))
-println("- ASSR finished")
+println("ASSR finished")
 # set verbose to true if you want to print intermediate results
-@time T, U = check_robust_controllability(bcn; verbose=true)
+@time T, U = check_robust_controllability(bcn; verbose=false)
 
 println("T* = ")
 display(T)
@@ -35,4 +35,5 @@ println("Min and max values in T* except ∞ = ", extrema(T[mask]))
 println("U* = ")
 display(U)
 
-#TODO JLD2
+# Save the results
+jldsave(joinpath(@__DIR__, "result/res.jld2"); T, U, bcn)
