@@ -2,13 +2,17 @@
     struct TTime <: Integer
 
 A integer type that counts the control time.
-Generally, the control time is a small value, and the underlying `UInt8` is enough.
+Generally, the control time is a small value, and the underlying `UInt8` or `UInt16` is usually enough.
+We thus use a smaller integer type to represent the control time to save memory.
 The infinite value of `TTime` is defined as the constant `InfTime`.
 A short alias of `TTime` is `TT`.
 """
 struct TTime <: Integer
-    value::UInt8        # Change this for wider integers 
+    value::UInt16        # Change this for wider or smaller integers 
 end
+
+Base.convert(T::Type{<:Real}, x::TTime) = T(x.value)
+Base.convert(::Type{TTime}, x::AbstractFloat) = isinf(x) ? InfTime : TTime(x)
 
 TTime() = TTime(0)
 zero(TTime) = TTime(0)

@@ -18,19 +18,22 @@ end
 
 """
     run_Q_learning(env::Environment, e::Integer; ϵ::Float64=0.2, 
-        max_episodes::Integer=100*env.bcn.N, max_steps_per_episode::Integer=2*env.bcn.N)
+        max_episodes::Integer=100*env.bcn.N*env.bcn.M, max_steps_per_episode::Integer=2*env.bcn.N)
 
 Run Q-learning for one target state `e` and all initial states of the BCN.
 A matrix `Q` is returned, where `Q[s, a]` is the action value for state `s` and control `a`.
 A vector `V` is returned, where `V[s]` is the value for state `s`.
 Conceptually, `V[s]` denotes the *shortest control time* from state `s` to state `e`, which can be `Inf`.
 
-Note: if there is any Q[s, a] = 0, then this state-action pair is never visited.
+Note: 
+- if there is any Q[s, a] = 0, then this state-action pair is never visited.
+- the parameter `max_steps_per_episode` should be >= `N`, where `N` is the number of states.
 """
 function run_Q_learning(env::Environment, e::Integer; ϵ::Float64=0.2, 
-        max_episodes::Integer=100*env.bcn.N, max_steps_per_episode::Integer=2*env.bcn.N)
+        max_episodes::Integer=100*env.bcn.M*env.bcn.N, max_steps_per_episode::Integer=2*env.bcn.N)
     bcn = env.bcn
     M, N = bcn.M, bcn.N
+    @assert max_steps_per_episode >= N "max_steps_per_episode must be >= N"
 
     Q = zeros(N, M)
     probabilities = fill(1.0/N, N)
@@ -78,30 +81,38 @@ function run_Q_learning(env::Environment, e::Integer; ϵ::Float64=0.2,
          "The result is probably wrong. Try to increase `max_episodes` or `max_steps_per_episode`."
     end
     V = minimum(Q; dims=2)
+    # turn V and Q into `TTime` types to save memory and to ease comparison with our DP method
+    Q = convert.(TTime, Q)
+    V = convert.(TTime, V)
     return Q, V
 end
 
 
 """
     run_Q_learning(env::Environment; ϵ::Float64=0.2, max_episodes::Integer=100*env.bcn.N, 
-        max_steps_per_episode::Integer=2*env.bcn.N) 
+        max_steps_per_episode::Integer=2*env.bcn.N, verbose::Bool=false) 
 
 Run Q-learning for all target states and all initial states of the BCN.
 A 3D array `Q` is returned, where `Q[s, a, e]` is the action value for state `s->e` and control `a`.
 A matrix `V` is returned, where `V[s, e]` is the value for state `s->e`.
 Conceptually, `V[s, e]` denotes the *shortest control time* from state `s` to state `e`, which can be `Inf`.
 
-Note: if there is any Q[s, a, e] = 0, then this state-action pair is never visited.
+Note: 
+- if there is any Q[s, a, e] = 0, then this state-action pair is never visited.
+- the parameter `max_steps_per_episode` should be >= `N`, where `N` is the number of states.
 """
 function run_Q_learning(env::Environment; ϵ::Float64=0.2, max_episodes::Integer=100*env.bcn.N, 
-        max_steps_per_episode::Integer=2*env.bcn.N)
+        max_steps_per_episode::Integer=2*env.bcn.N, verbose::Bool=false)
     bcn = env.bcn
     M, N = bcn.M, bcn.N
 
-    Q = zeros(N, M, N)
-    V = zeros(N, N)
+    Q = zeros(TTime, N, M, N)
+    V = zeros(TTime, N, N)
 
     for e in 1:N
+        if verbose && e % 10 == 0
+            println("Progress: $e / $N")
+        end
         Q[:, :, e], V[:, e] = run_Q_learning(env, e; ϵ, max_episodes, max_steps_per_episode)
     end
 

@@ -1,3 +1,4 @@
+# Calculate the transition matrix L in ASSR
 # the ara operon network definition and compute its ASSR: n=9, m=4, q=2
 # let the state variable of 9 nodes be x1, x2, ..., x9
 # let the control variable be u: Ae, Aem, Ara-, Ge
@@ -19,4 +20,6 @@ f9(x, u, ξ) = x[8] | ξ[2]
 
 fs = [f1, f2, f3, f4, f5, f6, f7, f8, f9]
 # compute the ASSR, and the transition matrix is stored in L.txt
-bcn = calculate_ASSR(fs, 4, 2; to_file=joinpath(@__DIR__, "L.txt"))
+bcn = calculate_ASSR(fs, 4, 2; to_file=joinpath(@__DIR__, "model/L.txt"))
+println("ASSR finished")
+

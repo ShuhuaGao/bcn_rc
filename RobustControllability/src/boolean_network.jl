@@ -75,10 +75,20 @@ function calculate_ASSR(fs::AbstractVector{<:Function}, m, q; to_file::String=""
         if endswith(to_file, "jld2")
             jldsave(to_file; bcn)
         elseif endswith(to_file, r"txt|dat")
-            writedlm(to_file, bcn.L)
+            writedlm(to_file, [[bcn.M, bcn.N, bcn.Q]; bcn.L])
         else
             error("Unrecognized file format in `to_file`!")
         end
     end
     return bcn
+end
+
+function load_bcn(L_file::String)::BCN
+    if endswith(L_file, r"txt|dat")
+        data = readdlm(L_file, Int64)
+        bcn = BCN(data[1:3]..., @view data[4:end])
+        return bcn
+    else
+        error("Unrecognized file format in `L_file`!")
+    end
 end
